@@ -4,22 +4,30 @@
 
 	let bets = [1, 5, 10, 25, 50, 100];
 
+
 	const getImagePath = (bet: number) => {
 		return `/chips/chip_${bet}.png`;
 	}
 
-	const selectBet = (bet: number) => {
-		addedBet.set(true);
-		addedBetList.update(addedBetList => {
-			addedBetList.push(bet)
-			return addedBetList;
-		});
-		console.log(`Selected bets: ${$addedBetList}`);
-		fund.set($fund - totalSum);
-	}
-
 	let totalSum = 0;
 	$: totalSum = $addedBetList.reduce((sum, bet) => sum + bet, 0);
+
+	const selectBet = (bet: number) => {
+		if ($fund - bet >= 0) {
+			addedBet.set(true);
+			addedBetList.update(addedBetList => {
+				addedBetList.push(bet)
+				return addedBetList;
+			});
+
+			// Calculate new total sum and update fund immediately
+			const newTotalSum = $addedBetList.reduce((sum, bet) => sum + bet, 0);
+			console.log(`Selected bets: ${$addedBetList}, total sum: ${newTotalSum}`);
+			fund.set($fund - newTotalSum);
+		} else {
+			alert("Your balance doesn't support this bet.");
+		}
+	}
 </script>
 
 <div>
