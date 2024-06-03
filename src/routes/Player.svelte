@@ -20,10 +20,12 @@
 				return addedBetList;
 			});
 
+			console.log("line 23 " + $fund)
+			fund.set($fund - bet);
+
 			// Calculate new total sum and update fund immediately
 			const newTotalSum = $addedBetList.reduce((sum, bet) => sum + bet, 0);
 			console.log(`Selected bets: ${$addedBetList}, total sum: ${newTotalSum}`);
-			fund.set($fund - newTotalSum);
 		} else {
 			alert("Your balance doesn't support this bet.");
 		}
