@@ -43,7 +43,7 @@
 
 	const checkCardExists = (value: string | number, symbol: string): boolean => {
 		// returns true if exists, false if not
-		let valueStr = value.toString;
+		let valueStr = value.toString();
 		let card = valueStr + symbol;
 		console.log("card is " + card + " existingCards: " + $existingCards + " returning: " + $existingCards.includes(card));
 
