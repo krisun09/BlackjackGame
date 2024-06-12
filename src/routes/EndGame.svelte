@@ -1,14 +1,17 @@
 <script lang="ts">
 	import {
-		playerHandTotal,
-		dealerHandTotal,
 		session,
-		playerHand,
-		dealerHand,
 		existingCards,
 		addedBetList,
-		fund
+		fund,
+		playerInfo,
+		dealerInfo
 	} from '$lib/stores.ts';
+
+	const resetSession = () => {
+		session.set(false);
+		console.log("session reset, session is: " + $session)
+	}
 
 	const win = () => {
 		let haveWon = 0;
@@ -17,67 +20,74 @@
 		}
 		console.log("have won is: " + haveWon);
 		fund.set($fund + haveWon);
+
+		return("You Won!")
 	}
 
 	const even = () => {
-		// TODO: change calculation method. should win more.
 		let total = 0;
 		for (let i = 0; i < $addedBetList.length; i++) {
 			total += $addedBetList[i];
 		}
 		fund.set($fund + total/2);
+
+		return("Even")
 	}
 
 	const decideWinner = () => {
-		let resultMessage;
+		resetSession()
 
-		let playerPoint = $playerHandTotal;
-		let dealerPoint = $dealerHandTotal;
+		let playerPoint = $playerInfo.total;
+		let dealerPoint = $dealerInfo.total;
 
-		switch (true) {
-			case playerPoint > 21:
-				resultMessage = "You Bust!";
-				break;
-			case dealerPoint > 21:
-				resultMessage = "You Won!";
-				win();
-				break;
-			case playerPoint === dealerPoint:
-				resultMessage = "Even";
-				even();
-				break;
-			case playerPoint > dealerPoint:
-				resultMessage = "You Won!";
-				win();
-				break;
-			default:
-				resultMessage = "You Lost!";
+		let resultMessage: string;
+
+		if (playerPoint > 21 && dealerPoint > 21) {
+			resultMessage = even()
+		}
+		else if (playerPoint > 21) {
+			resultMessage = "You Bust!";
+		}
+		else if (dealerPoint > 21) {
+			resultMessage = win();
+		}
+		else if (playerPoint === dealerPoint) {
+			resultMessage = even();
+		}
+		else if (playerPoint > dealerPoint) {
+			resultMessage = win();
+		}
+		else {
+			resultMessage = "You Lost!";
 		}
 
-		resetSession();
-		console.log("session is " + $session)
-
 		console.log("dealer: " + dealerPoint + " Player: " + playerPoint)
-		window.alert(resultMessage);
+		setTimeout(() => {
+			window.alert(resultMessage);
+			reset();
+		}, 1000);
 	}
-
-	const resetSession = () => {
-		session.set(false);
-	}
-
 
 	const reset = () => {
-		playerHand.set([]);
-		dealerHand.set([]);
-		playerHandTotal.set(0);
-		dealerHandTotal.set(0);
+		playerInfo.update(hand => {
+			hand.total = 0;
+			hand.cards = [];
+
+			return hand;
+		});
+		dealerInfo.update(hand => {
+			hand.total = 0;
+			hand.cards = [];
+
+			return hand;
+		})
+
 		existingCards.set([]);
 		addedBetList.set([]);
 	}
 
 	const endGame = () => {
 		decideWinner();
-		reset();
 	}
 
 

@@ -1,28 +1,31 @@
 <script lang="ts">
-	export let value: string ;
+	// export let id: number;
+	// export let value: number;
+	export let symbol: string;
+	export let suit: string;
 	export let canFlip: boolean;
 	export let flipped: boolean;
 
+	// props and state
 	const flipCard = () => {
 		if (canFlip) {
 			flipped = !flipped;
 		}
 	}
-</script>
 
+</script>
 
 <button class="card"
 				class:flipped
 				on:click ={flipCard}
 >
 	<div class="front">
-		<span class="symbol">{value}</span>
+		<span class="symbol">{symbol + suit}</span>
 	</div>
 	<div class="back">
 		<div class="pattern"></div>
 	</div>
 </button>
-
 
 <style>
     .card {

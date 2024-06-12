@@ -1,110 +1,99 @@
 <script lang="ts">
 	import {
-		dealerHand,
-		dealerHandTotal,
-		playerHand,
-		playerHandTotal,
 		session,
-		existingCards,
-		addedBet
+		addedBetThisRound,
+		playerInfo,
+		dealerInfo, addedBetList
 	} from '$lib/stores.ts';
+	import { CARDS } from './constants.ts';
+	import { get } from 'svelte/store';
 
-	const allSymbols = [
-		2,
-		3,
-		4,
-		5,
-		6,
-		7,
-		8,
-		9,
-		10,
-		"J",
-		"Q",
-		"K",
-		"A",
-	];
-	const allSuitSymbols = "♠♣♦♥";
+	let deck = [...CARDS];
 
-	const generateCardValue = () => {
-		// generate a random value between 0-12 and get the corresponding symbol from allSymbols
-		return allSymbols[Math.floor(Math.random() * 12)];
-	}
-
-	const generateCardSuit = (value: string | number): string => {
-		// generate a random suit
-		// need to fix the possibility for a value with all four suits existed
-		let randomSuitSymbol = allSuitSymbols[Math.floor(Math.random() * 4)];
-		if (!checkCardExists(value, randomSuitSymbol)) {
-			return randomSuitSymbol;
-		}
-		return generateCardSuit(value);
-	}
-
-	const checkCardExists = (value: string | number, symbol: string): boolean => {
-		// returns true if exists, false if not
-		let valueStr = value.toString();
-		let card = valueStr + symbol;
-		console.log("card is " + card + " existingCards: " + $existingCards + " returning: " + $existingCards.includes(card));
-
-		return $existingCards.includes(card);
-	}
-
-	const addCardRecord = (cardFace: string) => {
-		$existingCards.push(cardFace);
-		existingCards.set($existingCards);
-	}
-
-	const dealCard = () => {
-		if ($session === false) {
-			console.log("Initialising session");
-			initialDeal();
-		}
-		// let cardSets = generateCardSets()
-		let cardValue = generateCardValue();
-		let cardSuit = generateCardSuit(cardValue);
-		let cardFace = cardValue + cardSuit;
-
-		if (typeof cardValue !== 'number') {
-			cardValue = (cardValue === "A") ? 1 : 10;
+	const drawCard = () => {
+		// Ensure there are still cards in the deck
+		if (deck.length === 0) {
+			console.error("No more cards in the deck!");
+			return null;
 		}
 
-		addedBet.set(false);
+		// Draw a random card
+		const randomIndex = Math.floor(Math.random() * deck.length);
+		const drawnCard = deck[randomIndex];
 
-		playerHandTotal.set($playerHandTotal + cardValue);
-		$playerHand.push(cardFace);
-		playerHand.set($playerHand);
+		// Remove the drawn card from the deck
+		deck = deck.filter(card => card.id !== drawnCard.id);
 
-		addCardRecord(cardFace)
-		console.log("player card " + cardFace + " dealt. The current player hand is: " + $playerHand);
+		return drawnCard;
+	}
 
-		// a simple logic for dealer to stop hitting. Should update.
-		if ($dealerHandTotal > 18) {
-			console.log("Dealer's total is " + $dealerHandTotal + ", stopping hitting.")
+	const dealCard = (player: typeof playerInfo) => {
+		const card = drawCard();
+
+		if (card === null) {
+			console.log("All cards has been dealt")
 			return;
 		}
 
-		cardValue = generateCardValue();
-		cardSuit = generateCardSuit(cardValue);
-		cardFace = cardValue + cardSuit;
+		addedBetThisRound.set(false);
 
-		if (typeof cardValue !== 'number') {
-			cardValue = (cardValue === "A") ? 1 : 10;
-		}
+		player.update(hand => {
+			const previousTotal = hand.total;
+			hand.total = previousTotal + card.value;
 
-		dealerHandTotal.set($dealerHandTotal + cardValue);
-		$dealerHand.push(cardFace);
-		dealerHand.set($dealerHand);
-		addCardRecord(cardFace);
+			hand.cards.push(card);
 
-		console.log("dealer card " + cardFace + " dealt");
+			return hand;
+		});
 	}
 
-	const initialDeal = () => {
+	const dealerAddBetAndCard = (thinkingTime: number) => {
+		setTimeout(() => {
+			addedBetList.update(addedBetListValue => {
+				// addedBetListValue.push(bet)
+				const lastBet = addedBetListValue.slice(-1)[0];
+				addedBetListValue = [...addedBetListValue, lastBet]
+				return addedBetListValue;
+			});
+			dealCard(dealerInfo);
+		}, thinkingTime);
+	}
+
+	const dealerAddBet = (thinkingTime: number) => {
+		setTimeout(() => {
+			addedBetList.update(addedBetListValue => {
+				// addedBetListValue.push(bet)
+				const lastBet = addedBetListValue.slice(-1)[0];
+				addedBetListValue = [...addedBetListValue, lastBet]
+				return addedBetListValue;
+			});
+		}, thinkingTime);
+	}
+
+	const dealCards = () => {
 		// Deal initial cards for the player and the dealer
 		session.set(true);
+		if (get(playerInfo).cards.length === 0) {
+			dealCard(playerInfo);
+			dealCard(playerInfo);
+			dealerAddBet(0);
+			dealCard(dealerInfo);
+			dealCard(dealerInfo);
+			return;
+		}
 
-		dealCard();
+		// a simple logic for dealer to stop hitting. Should update.
+		if ($dealerInfo.total > 18) {
+			console.log("Dealer's total is " + $dealerInfo.total + ", stopping hitting.")
+			dealCard(playerInfo);
+			dealerAddBet(200)
+			return;
+		}
+
+		// deal cards for both hands
+		dealCard(playerInfo);
+		dealerAddBetAndCard(500);
+
 		// console.log("initial player card dealt " + $playerHand)
 		// console.log("initial dealer card dealt " + $dealerHand)
 	}
@@ -113,8 +102,8 @@
 
 <div>
 	<button class="deal-card-button"
-					on:click={dealCard}
-					disabled={!$addedBet}
+					on:click={dealCards}
+					disabled={!$addedBetThisRound}
 					data-tooltip="Please add a bet first"
 	>Deal
 	</button>

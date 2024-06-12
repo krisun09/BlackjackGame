@@ -1,31 +1,28 @@
 <script lang="ts">
-	import { addedBet, addedBetList, playerHand, playerHandTotal, fund } from '$lib/stores.ts';
+	import { addedBetThisRound, addedBetList, fund, playerInfo } from '$lib/stores.ts';
+	import {availableBets} from './constants.ts';
 	import Card from './Card.svelte';
+	import Chip from './Chip.svelte';
 
-	let bets = [1, 5, 10, 25, 50, 100];
-
-
-	const getImagePath = (bet: number) => {
-		return `/chips/chip_${bet}.png`;
-	}
-
-	let totalSum = 0;
 	$: totalSum = $addedBetList.reduce((sum, bet) => sum + bet, 0);
 
 	const selectBet = (bet: number) => {
+		console.log("selecting bet...")
 		if ($fund - bet >= 0) {
-			addedBet.set(true);
-			addedBetList.update(addedBetList => {
-				addedBetList.push(bet)
-				return addedBetList;
+			addedBetThisRound.set(true);
+
+			// .push on array doesn't trigger reactivity.
+			addedBetList.update(addedBetListValue => {
+				// addedBetListValue.push(bet)
+				addedBetListValue = [...addedBetListValue, bet]
+				return addedBetListValue;
 			});
 
-			console.log("line 23 " + $fund)
-			fund.set($fund - bet);
+			// use update, more efficient
+			fund.update(value => value - bet)
+			// fund.set($fund - bet);
 
-			// Calculate new total sum and update fund immediately
-			const newTotalSum = $addedBetList.reduce((sum, bet) => sum + bet, 0);
-			console.log(`Selected bets: ${$addedBetList}, total sum: ${newTotalSum}`);
+			console.log(`Selected bets: ${$addedBetList}, total sum: ${totalSum}`);
 		} else {
 			alert("Your balance doesn't support this bet.");
 		}
@@ -34,28 +31,31 @@
 
 <div>
 	<div class="player-hand">
-		<h2 class="hand-title">Player's Hand - {$playerHandTotal}</h2>
+		<h2 class="hand-title">Player's Hand - {$playerInfo.total}</h2>
 		<div class="card-container">
-			{#each $playerHand as card}
-				<Card value={card} canFlip={true} flipped={true} />
+			{#each $playerInfo.cards as card}
+				<Card symbol={card.symbol} suit={card.suit} canFlip={true} flipped={true} />
 			{/each}
 		</div>
 	</div>
 	<div class="bet-container">
 		<div class="fund">$ {$fund}</div>
-		{#each bets as bet}
-			<button class="bet" type="button" on:click={() => selectBet(bet)}>
-				<img src={getImagePath(bet)} alt={`Bet ${bet}`} />
-			</button>
+		{#each availableBets as bet}
+				<Chip
+					value={bet}
+					alt="Bet ${bet}"
+					on:click={() => selectBet(bet)}
+				/>
 		{/each}
 	</div>
 	<div>
 		<div class="floating-chips">
 			<div class="total-sum">$ {totalSum}</div>
 			{#each $addedBetList as bet}
-				<div class="chip">
-					<img src={getImagePath(bet)} alt={`Selected bet ${bet}`} />
-				</div>
+				<Chip
+					value={bet}
+					alt="Selected bet ${bet}"
+				/>
 			{/each}
 		</div>
 	</div>
@@ -86,17 +86,6 @@
         color: white;
 				padding-left: 20px;
 		}
-    .bet {
-        cursor: pointer;
-        margin: 10px;
-        text-align: center;
-        border: none;
-        background: none;
-        padding: 0;
-    }
-    .bet img {
-        width: 88px;
-    }
     .floating-chips {
         position: absolute;
         top: 33px;
@@ -104,12 +93,6 @@
         text-align: center;
 				width: 210px;
     }
-    .chip {
-        display: contents;
-    }
-		.chip img {
-				width: 66px;
-		}
     .total-sum {
         font-size: 1.6em;
         font-weight: bold;
@@ -117,6 +100,5 @@
         color: white;
 				padding-right: 7px;
     }
-
 </style>
 
